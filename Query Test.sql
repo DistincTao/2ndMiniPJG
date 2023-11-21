@@ -47,7 +47,7 @@ SELECT cust_id AS '회원번호',
    AND cust_overdue IS NOT NULL
  ORDER BY 회원번호;
 
--- 5. 액션 비디오를 대여한 회원의 회원번호, 회원이름, 장르번호, 회원생일을 출력 (회원번호로 오름차순 정렬)
+-- 5. 액션 비디오를 대여한 회원의 회원번호, 회원이름, 장르번호, 회원생일을 출력 (회원번호로 내림차순 정렬)
 SELECT c.cust_id AS '회원번호',
 	   c.cust_name AS '회원이름', 
        g.gen_id AS '장르번호', 
@@ -177,22 +177,29 @@ SELECT vid_id AS '비디오 번호',
 
 -- 13. 출시일 2000년 전 중 인기없는 비디오 조회 및 (대여정보가 없는) 비디오 제거  ⇒  대여 정보 없는 비디오 없어 삭제 불가
 SELECT v.vid_tit AS '제목', 
-	   COUNT(r.rent_id) AS '대여횟수'
-  FROM video v, rental r
- WHERE v.vid_id = r.vid_id
-   AND v.vid_rel_date < '01/01/01'
+	   COUNT(r.rent_id) AS '대여횟수',
+       v.vid_rel_date AS '출시일'
+  FROM video v LEFT OUTER JOIN rental r
+	ON v.vid_id = r.vid_id
+ WHERE v.vid_rel_date < '01/01/01'
  GROUP BY v.vid_tit
- ORDER BY 대여횟수;
+HAVING COUNT(r.vid_id) = 0;
 
 -- 비디오 제거
 DELETE FROM video
- WHERE vid_tit = 
-	  (SELECT v.vid_tit
-		 FROM video v, rental r	
-		WHERE v.vid_id = r.vid_id
-		  AND v.vid_rel_date < '01/01/01'
-		  AND COUNT(r.rent_id) = 0
-	  );
+ WHERE vid_tit = '서부 개척사';
+
+DELETE FROM video
+ WHERE vid_tit = '서부 개척사';
+
+DELETE FROM video
+ WHERE vid_tit = '실버라도';
+
+DELETE FROM video
+ WHERE vid_tit = '페어런트 트랩';
+
+DELETE FROM video
+ WHERE vid_tit = '포레스트 검프';
 
 -- 14. 대여 건별 대여료, 연체기간, 연체료 및 매출 현황 (미반납 건에 대한 것은 연체료 0으로 반영)
 select r.rent_id AS '대여번호', 
