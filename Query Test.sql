@@ -75,18 +75,19 @@ SELECT c.cust_id AS '회원 id',
    AND r.return_date IS NULL;
 
 -- 7. 23년 8월부터 대여료와 연체료 10%인상하여 금액 산출
-SELECT r.rent_date AS '대여일', 
-	   g.gen_fee * 1.1 AS '10% 인상 대여료',
-       g.gen_latefee * 1.1 AS '10% 인상 연체료',
-	   g.gen_fee * 1.1 + 
-			(CASE WHEN DATEDIFF(return_date, return_exp) < 1 THEN 0
+SELECT SUM(g.gen_fee * 1.1) AS '10% 인상 후 총 대여료',
+       SUM(CASE WHEN DATEDIFF(return_date, return_exp) < 0 THEN 0
 				  WHEN return_date IS NULL THEN 0
 				  ELSE DATEDIFF(return_date, return_exp)
-			  END * g.gen_latefee * 1.1) AS '총 매출'
+			  END * g.gen_latefee * 1.1) AS '10% 인상 후 총 연체료',
+	   SUM(g.gen_fee * 1.1 + 
+			(CASE WHEN DATEDIFF(return_date, return_exp) < 0 THEN 0
+				  WHEN return_date IS NULL THEN 0
+				  ELSE DATEDIFF(return_date, return_exp)
+			  END * g.gen_latefee * 1.1)) AS '총 매출'
   FROM rental r, genre g
  WHERE r.gen_id = g.gen_id
-   AND r.rent_date >= '23/08/01'
- ORDER BY 대여일;
+   AND r.rent_date >= '23/08/01';
 
 -- 8. 연령대별(10대 ~ 60대) 대여한 비디오의 제목, 대여 횟수, 연령대 출력 (대여 횟수에 따른 오름차순 정렬)
 SELECT r.rent_id AS '대여번호',
@@ -276,14 +277,14 @@ group by r.gen_id;
 
 SELECT v.vid_tit, COUNT(r.vid_id) AS rental_count
 FROM rental r, video v
-WHERE v.vid_com = (                
-    SELECT v_inner.vid_com
-    FROM video v_inner
-    JOIN rental r_inner ON v_inner.vid_id = r_inner.vid_id
-    WHERE v_inner.vid_rel_date >= '2023-01-01'
-    GROUP BY v_inner.vid_com
-    ORDER BY COUNT(r_inner.vid_id) DESC
-    LIMIT 1
+WHERE v.vid_com =
+	 (SELECT v_inner.vid_com
+		FROM video v_inner
+		JOIN rental r_inner ON v_inner.vid_id = r_inner.vid_id
+		WHERE v_inner.vid_rel_date >= '2023-01-01'
+		GROUP BY v_inner.vid_com
+		ORDER BY COUNT(r_inner.vid_id) DESC
+		LIMIT 1
 )
 and v.vid_id = r.vid_id
 GROUP BY v.vid_tit
